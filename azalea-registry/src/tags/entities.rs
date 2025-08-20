@@ -53,16 +53,17 @@ pub static BEEHIVE_INHABITORS: LazyLock<HashSet<EntityKind>> =
     LazyLock::new(|| HashSet::from_iter(vec![EntityKind::Bee]));
 pub static BOAT: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
     HashSet::from_iter(vec![
-        EntityKind::OakBoat,
-        EntityKind::SpruceBoat,
-        EntityKind::BirchBoat,
-        EntityKind::JungleBoat,
-        EntityKind::AcaciaBoat,
-        EntityKind::CherryBoat,
-        EntityKind::DarkOakBoat,
-        EntityKind::PaleOakBoat,
-        EntityKind::MangroveBoat,
-        EntityKind::BambooRaft,
+        EntityKind::Boat,
+        // EntityKind::OakBoat,
+        // EntityKind::SpruceBoat,
+        // EntityKind::BirchBoat,
+        // EntityKind::JungleBoat,
+        // EntityKind::AcaciaBoat,
+        // EntityKind::CherryBoat,
+        // EntityKind::DarkOakBoat,
+        // EntityKind::PaleOakBoat,
+        // EntityKind::MangroveBoat,
+        // EntityKind::BambooRaft,
     ])
 });
 pub static CAN_BREATHE_UNDER_WATER: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
@@ -86,7 +87,6 @@ pub static CAN_BREATHE_UNDER_WATER: LazyLock<HashSet<EntityKind>> = LazyLock::ne
         EntityKind::Stray,
         EntityKind::WitherSkeleton,
         EntityKind::SkeletonHorse,
-        EntityKind::Bogged,
         EntityKind::ZombieHorse,
         EntityKind::Zombie,
         EntityKind::ZombieVillager,
@@ -96,8 +96,8 @@ pub static CAN_BREATHE_UNDER_WATER: LazyLock<HashSet<EntityKind>> = LazyLock::ne
         EntityKind::Husk,
     ])
 });
-pub static CAN_EQUIP_HARNESS: LazyLock<HashSet<EntityKind>> =
-    LazyLock::new(|| HashSet::from_iter(vec![EntityKind::HappyGhast]));
+// pub static CAN_EQUIP_HARNESS: LazyLock<HashSet<EntityKind>> =
+//     LazyLock::new(|| HashSet::from_iter(vec![EntityKind::HappyGhast]));
 pub static CAN_EQUIP_SADDLE: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
     HashSet::from_iter(vec![
         EntityKind::Horse,
@@ -110,18 +110,18 @@ pub static CAN_EQUIP_SADDLE: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
         EntityKind::Camel,
     ])
 });
-pub static CAN_TURN_IN_BOATS: LazyLock<HashSet<EntityKind>> =
-    LazyLock::new(|| HashSet::from_iter(vec![EntityKind::Breeze]));
+// pub static CAN_TURN_IN_BOATS: LazyLock<HashSet<EntityKind>> =
+//     LazyLock::new(|| HashSet::from_iter(vec![EntityKind::Breeze]));
 pub static CAN_WEAR_HORSE_ARMOR: LazyLock<HashSet<EntityKind>> =
     LazyLock::new(|| HashSet::from_iter(vec![EntityKind::Horse]));
-pub static DEFLECTS_PROJECTILES: LazyLock<HashSet<EntityKind>> =
-    LazyLock::new(|| HashSet::from_iter(vec![EntityKind::Breeze]));
+// pub static DEFLECTS_PROJECTILES: LazyLock<HashSet<EntityKind>> =
+//     LazyLock::new(|| HashSet::from_iter(vec![EntityKind::Breeze]));
 pub static DISMOUNTS_UNDERWATER: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
     HashSet::from_iter(vec![
         EntityKind::Camel,
         EntityKind::Chicken,
         EntityKind::Donkey,
-        EntityKind::HappyGhast,
+        // EntityKind::HappyGhast,
         EntityKind::Horse,
         EntityKind::Llama,
         EntityKind::Mule,
@@ -145,18 +145,18 @@ pub static FALL_DAMAGE_IMMUNE: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| 
         EntityKind::Cat,
         EntityKind::Chicken,
         EntityKind::Ghast,
-        EntityKind::HappyGhast,
+        // EntityKind::HappyGhast,
         EntityKind::Phantom,
         EntityKind::MagmaCube,
         EntityKind::Ocelot,
         EntityKind::Parrot,
         EntityKind::Wither,
-        EntityKind::Breeze,
+        // EntityKind::Breeze,
     ])
 });
 pub static FOLLOWABLE_FRIENDLY_MOBS: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
     HashSet::from_iter(vec![
-        EntityKind::Armadillo,
+        // EntityKind::Armadillo,
         EntityKind::Bee,
         EntityKind::Camel,
         EntityKind::Cat,
@@ -165,7 +165,7 @@ pub static FOLLOWABLE_FRIENDLY_MOBS: LazyLock<HashSet<EntityKind>> = LazyLock::n
         EntityKind::Donkey,
         EntityKind::Fox,
         EntityKind::Goat,
-        EntityKind::HappyGhast,
+        // EntityKind::HappyGhast,
         EntityKind::Horse,
         EntityKind::SkeletonHorse,
         EntityKind::Llama,
@@ -208,7 +208,7 @@ pub static IGNORES_POISON_AND_REGEN: LazyLock<HashSet<EntityKind>> = LazyLock::n
         EntityKind::Stray,
         EntityKind::WitherSkeleton,
         EntityKind::SkeletonHorse,
-        EntityKind::Bogged,
+        // EntityKind::Bogged,
         EntityKind::ZombieHorse,
         EntityKind::Zombie,
         EntityKind::ZombieVillager,
@@ -248,8 +248,8 @@ pub static IMPACT_PROJECTILES: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| 
         EntityKind::Trident,
         EntityKind::DragonFireball,
         EntityKind::WitherSkull,
-        EntityKind::WindCharge,
-        EntityKind::BreezeWindCharge,
+        // EntityKind::WindCharge,
+        // EntityKind::BreezeWindCharge,
         EntityKind::Arrow,
         EntityKind::SpectralArrow,
     ])
@@ -262,7 +262,7 @@ pub static INVERTED_HEALING_AND_HARM: LazyLock<HashSet<EntityKind>> = LazyLock::
         EntityKind::Stray,
         EntityKind::WitherSkeleton,
         EntityKind::SkeletonHorse,
-        EntityKind::Bogged,
+        // EntityKind::Bogged,
         EntityKind::ZombieHorse,
         EntityKind::Zombie,
         EntityKind::ZombieVillager,
@@ -274,9 +274,9 @@ pub static INVERTED_HEALING_AND_HARM: LazyLock<HashSet<EntityKind>> = LazyLock::
 });
 pub static NO_ANGER_FROM_WIND_CHARGE: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
     HashSet::from_iter(vec![
-        EntityKind::Breeze,
+        // EntityKind::Breeze,
         EntityKind::Skeleton,
-        EntityKind::Bogged,
+        // EntityKind::Bogged,
         EntityKind::Stray,
         EntityKind::Zombie,
         EntityKind::Husk,
@@ -323,8 +323,8 @@ pub static RAIDERS: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
 pub static REDIRECTABLE_PROJECTILE: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
     HashSet::from_iter(vec![
         EntityKind::Fireball,
-        EntityKind::WindCharge,
-        EntityKind::BreezeWindCharge,
+        // EntityKind::WindCharge,
+        // EntityKind::BreezeWindCharge,
     ])
 });
 pub static SENSITIVE_TO_BANE_OF_ARTHROPODS: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
@@ -360,7 +360,7 @@ pub static SENSITIVE_TO_SMITE: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| 
         EntityKind::Stray,
         EntityKind::WitherSkeleton,
         EntityKind::SkeletonHorse,
-        EntityKind::Bogged,
+        // EntityKind::Bogged,
         EntityKind::ZombieHorse,
         EntityKind::Zombie,
         EntityKind::ZombieVillager,
@@ -376,7 +376,7 @@ pub static SKELETONS: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
         EntityKind::Stray,
         EntityKind::WitherSkeleton,
         EntityKind::SkeletonHorse,
-        EntityKind::Bogged,
+        // EntityKind::Bogged,
     ])
 });
 pub static UNDEAD: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
@@ -387,7 +387,7 @@ pub static UNDEAD: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
         EntityKind::Stray,
         EntityKind::WitherSkeleton,
         EntityKind::SkeletonHorse,
-        EntityKind::Bogged,
+        // EntityKind::Bogged,
         EntityKind::ZombieHorse,
         EntityKind::Zombie,
         EntityKind::ZombieVillager,
@@ -405,7 +405,7 @@ pub static WITHER_FRIENDS: LazyLock<HashSet<EntityKind>> = LazyLock::new(|| {
         EntityKind::Stray,
         EntityKind::WitherSkeleton,
         EntityKind::SkeletonHorse,
-        EntityKind::Bogged,
+        // EntityKind::Bogged,
         EntityKind::ZombieHorse,
         EntityKind::Zombie,
         EntityKind::ZombieVillager,
