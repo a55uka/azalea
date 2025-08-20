@@ -94,6 +94,7 @@ pub enum EntityDataValue {
     ArmadilloState(ArmadilloStateKind),
     Vector3(Vec3f32),
     Quaternion(Quaternion),
+OptionalUuid(TODO),
 }
 
 #[derive(Clone, Debug)]

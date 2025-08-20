@@ -11,7 +11,7 @@ use azalea_buf::{AzaleaReadVar, AzaleaWrite, AzaleaWriteVar, BufReadError};
 
 use crate::read::ReadPacketError;
 
-pub const PROTOCOL_VERSION: i32 = 772;
+pub const PROTOCOL_VERSION: u32 = 763;
 pub const VERSION_NAME: &str = "1.21.8";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

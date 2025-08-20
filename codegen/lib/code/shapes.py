@@ -1,230 +1,167 @@
-from lib.utils import get_dir_location
+from lib.utils import get_dir_location, to_camel_case
+from lib.code.utils import clean_property_name
+from .blocks import get_property_struct_name
+from ..mappings import Mappings
 
-COLLISION_BLOCKS_RS_DIR = get_dir_location("../azalea-physics/src/collision/blocks.rs")
+COLLISION_BLOCKS_RS_DIR = get_dir_location(
+    '../azalea-physics/src/collision/blocks.rs')
 
 
-def generate_block_shapes(pumpkin_block_datas: dict, block_states_report):
-    blocks, shapes = simplify_shapes(pumpkin_block_datas)
+def generate_block_shapes(blocks_pixlyzer: dict, shapes: dict, aabbs: dict, block_states_report, block_datas_burger, mappings: Mappings):
+    blocks, shapes = simplify_shapes(blocks_pixlyzer, shapes, aabbs)
 
-    code = generate_block_shapes_code(blocks, shapes, block_states_report)
-    with open(COLLISION_BLOCKS_RS_DIR, "w") as f:
+    code = generate_block_shapes_code(
+        blocks, shapes, block_states_report, block_datas_burger, mappings)
+    with open(COLLISION_BLOCKS_RS_DIR, 'w') as f:
         f.write(code)
 
 
-def simplify_shapes(blocks: dict) -> tuple[dict, dict]:
-    """
-    Returns new_blocks and new_shapes,
-    where new_blocks is like { grass_block: { collision: [1, 1], outline: [1, 1] } }
-    and new_shapes is like { 1: [ [0, 0, 0, 1, 1, 1] ] }
-    """
-    new_blocks = {}
+def simplify_shapes(blocks: dict, shapes: dict, aabbs: dict):
+    new_id_increment = 0
+
     new_shapes = {}
+    old_id_to_new_id = {}
 
-    all_shapes_ids = {}
+    old_id_to_new_id[None] = 0
+    new_shapes[0] = ()
+    new_id_increment += 1
 
-    for block_data in blocks["blocks"]:
-        new_block_collision_shapes = []
-        new_block_outline_shapes = []
+    used_shape_ids = set()
+    # determine the used shape ids
+    for _block_id, block_data in blocks.items():
+        block_shapes = [state.get('collision_shape')
+                        for state in block_data['states'].values()]
+        for s in block_shapes:
+            used_shape_ids.add(s)
 
-        for state in block_data["states"]:
-            collision_shape = []
-            for box_id in state["collision_shapes"]:
-                box = blocks["shapes"][box_id]
-                collision_shape.append(tuple(box["min"] + box["max"]))
-            outline_shape = []
-            for box_id in state["outline_shapes"]:
-                box = blocks["shapes"][box_id]
-                outline_shape.append(tuple(box["min"] + box["max"]))
+    for shape_id, shape in enumerate(shapes):
+        if shape_id not in used_shape_ids: continue
+        # pixlyzer gives us shapes as an index or list of indexes into the
+        # aabbs list
+        # and aabbs look like { "from": number or [x, y, z], "to": (number or vec3) }
+        # convert them to [x1, y1, z1, x2, y2, z2]
+        shape = [shape] if isinstance(shape, int) else shape
+        shape = [aabbs[shape_aabb] for shape_aabb in shape]
+        shape = tuple([(
+            (tuple(part['from']) if isinstance(
+                part['from'], list) else ((part['from'],)*3))
+            + (tuple(part['to']) if isinstance(part['to'], list)
+               else ((part['to'],)*3))
+        ) for part in shape])
 
-            collision_shape = tuple(collision_shape)
-            outline_shape = tuple(outline_shape)
+        old_id_to_new_id[shape_id] = new_id_increment
+        new_shapes[new_id_increment] = shape
+        new_id_increment += 1
 
-            if collision_shape in all_shapes_ids:
-                collision_shape_id = all_shapes_ids[collision_shape]
-            else:
-                collision_shape_id = len(all_shapes_ids)
-                all_shapes_ids[collision_shape] = collision_shape_id
-                new_shapes[collision_shape_id] = collision_shape
-            if outline_shape in all_shapes_ids:
-                outline_shape_id = all_shapes_ids[outline_shape]
-            else:
-                outline_shape_id = len(all_shapes_ids)
-                all_shapes_ids[outline_shape] = outline_shape_id
-                new_shapes[outline_shape_id] = outline_shape
-
-            block_id = block_data["name"]
-            new_block_collision_shapes.append(collision_shape_id)
-            new_block_outline_shapes.append(outline_shape_id)
-
-        new_blocks[block_id] = {
-            "collision": new_block_collision_shapes,
-            "outline": new_block_outline_shapes,
-        }
+    # now map the blocks to the new shape ids
+    new_blocks = {}
+    for block_id, block_data in blocks.items():
+        block_id = block_id.split(':')[-1]
+        block_shapes = [state.get('collision_shape')
+                        for state in block_data['states'].values()]
+        new_blocks[block_id] = [old_id_to_new_id[shape_id]
+                                for shape_id in block_shapes]
 
     return new_blocks, new_shapes
 
 
-def generate_block_shapes_code(blocks: dict, shapes: dict, block_states_report):
+def generate_block_shapes_code(blocks: dict, shapes: dict, block_states_report, block_datas_burger, mappings: Mappings):
     # look at __cache__/generator-mod-*/blockCollisionShapes.json for format of blocks and shapes
 
-    generated_shape_code = ""
-    for shape_id, shape in sorted(shapes.items(), key=lambda shape: int(shape[0])):
+    generated_shape_code = ''
+    for (shape_id, shape) in sorted(shapes.items(), key=lambda shape: int(shape[0])):
         generated_shape_code += generate_code_for_shape(shape_id, shape)
 
-    # static COLLISION_SHAPES_MAP: [&LazyLock<VoxelShape>; 26644] = [&SHAPE0, &SHAPE1, &SHAPE1, ...]
-    empty_shapes = []
-    full_shapes = []
+    # 1..100 | 200..300 => &SHAPE1,
+    generated_match_inner_code = ''
+    shape_ids_to_block_state_ids = {}
+    for block_id, shape_ids in blocks.items():
+        if isinstance(shape_ids, int):
+            shape_ids = [shape_ids]
+        block_report_data = block_states_report['minecraft:' + block_id]
+        block_data_burger = block_datas_burger[block_id]
 
-    # the index into this list is the block state id
-    collision_shapes_map = []
-    outline_shapes_map = []
+        for possible_state, shape_id in zip(block_report_data['states'], shape_ids):
+            block_state_id = possible_state['id']
 
-    for block_id, shape_datas in blocks.items():
-        collision_shapes = shape_datas["collision"]
-        outline_shapes = shape_datas["outline"]
+            if shape_id not in shape_ids_to_block_state_ids:
+                shape_ids_to_block_state_ids[shape_id] = []
+            shape_ids_to_block_state_ids[shape_id].append(block_state_id)
+    # shape 1 is the most common so we have a _ => &SHAPE1 at the end
+    del shape_ids_to_block_state_ids[1]
+    for shape_id, block_state_ids in shape_ids_to_block_state_ids.items():
+        
+        # convert them into ranges (so like 1|2|3 is 1..=3 instead)
+        block_state_ids_ranges = []
+        range_start_block_state_id = None
+        last_block_state_id = None
+        for block_state_id in sorted(block_state_ids):
+            if range_start_block_state_id is None:
+                range_start_block_state_id = block_state_id
+            
+            if last_block_state_id is not None:
+                # check if the range is done
+                if block_state_id - 1 != last_block_state_id:
+                    block_state_ids_ranges.append(f'{range_start_block_state_id}..={last_block_state_id}' if range_start_block_state_id != last_block_state_id else str(range_start_block_state_id))
+                    range_start_block_state_id = block_state_id
 
-        if isinstance(collision_shapes, int):
-            collision_shapes = [collision_shapes]
-        if isinstance(outline_shapes, int):
-            outline_shapes = [outline_shapes]
+            last_block_state_id = block_state_id
 
-        block_report_data = block_states_report["minecraft:" + block_id]
+        block_state_ids_ranges.append(f'{range_start_block_state_id}..={last_block_state_id}' if range_start_block_state_id != last_block_state_id else str(range_start_block_state_id))
+        generated_match_inner_code += f'{"|".join(block_state_ids_ranges)} => &SHAPE{shape_id},\n'
+    generated_match_inner_code += '_ => &SHAPE1'
 
-        for possible_state, shape_id in zip(
-            block_report_data["states"], collision_shapes
-        ):
-            block_state_id = possible_state["id"]
-            if shape_id == 0:
-                empty_shapes.append(block_state_id)
-            elif shape_id == 1:
-                full_shapes.append(block_state_id)
-            while len(collision_shapes_map) <= block_state_id:
-                # default to shape 1 for missing shapes (full block)
-                collision_shapes_map.append(1)
-            collision_shapes_map[block_state_id] = shape_id
-        for possible_state, shape_id in zip(
-            block_report_data["states"], outline_shapes
-        ):
-            block_state_id = possible_state["id"]
-            while len(outline_shapes_map) <= block_state_id:
-                # default to shape 1 for missing shapes (full block)
-                outline_shapes_map.append(1)
-            outline_shapes_map[block_state_id] = shape_id
-
-    generated_map_code = f"static COLLISION_SHAPES_MAP: [&LazyLock<VoxelShape>; {len(collision_shapes_map)}] = ["
-    empty_shape_match_code = convert_ints_to_rust_ranges(empty_shapes)
-    block_shape_match_code = convert_ints_to_rust_ranges(full_shapes)
-    for block_state_id, shape_id in enumerate(collision_shapes_map):
-        generated_map_code += f"&SHAPE{shape_id},\n"
-    generated_map_code += "];\n"
-
-    generated_map_code += f"static OUTLINE_SHAPES_MAP: [&LazyLock<VoxelShape>; {len(outline_shapes_map)}] = ["
-    for block_state_id, shape_id in enumerate(outline_shapes_map):
-        generated_map_code += f"&SHAPE{shape_id},\n"
-    generated_map_code += "];\n"
-
-    if empty_shape_match_code == "":
-        print("Error: shape 0 was not found")
-
-    return f"""
+    return f'''
 //! Autogenerated block collisions for every block
 
-// This file is @generated from codegen/lib/code/shapes.py. If you want to
+// This file is generated from codegen/lib/code/block_shapes.py. If you want to
 // modify it, change that file.
 
 #![allow(clippy::explicit_auto_deref)]
 #![allow(clippy::redundant_closure)]
 
-use std::sync::LazyLock;
-
 use super::VoxelShape;
 use crate::collision::{{self, Shapes}};
 use azalea_block::*;
+use once_cell::sync::Lazy;
 
 pub trait BlockWithShape {{
-    fn collision_shape(&self) -> &'static VoxelShape;
-    fn outline_shape(&self) -> &'static VoxelShape;
-    /// Tells you whether the block has an empty shape.
-    ///
-    /// This is slightly more efficient than calling `shape()` and comparing against `EMPTY_SHAPE`.
-    fn is_collision_shape_empty(&self) -> bool;
-    fn is_collision_shape_full(&self) -> bool;
+    fn shape(&self) -> &'static VoxelShape;
 }}
 
 {generated_shape_code}
 
-
 impl BlockWithShape for BlockState {{
-    fn collision_shape(&self) -> &'static VoxelShape {{
-        COLLISION_SHAPES_MAP.get(self.id() as usize).unwrap_or(&&SHAPE1)
-    }}
-    fn outline_shape(&self) -> &'static VoxelShape {{
-        OUTLINE_SHAPES_MAP.get(self.id() as usize).unwrap_or(&&SHAPE1)
-    }}
-
-    fn is_collision_shape_empty(&self) -> bool {{
-        matches!(self.id(), {empty_shape_match_code})
-    }}
-
-    fn is_collision_shape_full(&self) -> bool {{
-        matches!(self.id(), {block_shape_match_code})
+    fn shape(&self) -> &'static VoxelShape {{
+        match self.id {{
+            {generated_match_inner_code}
+        }}
     }}
 }}
-
-{generated_map_code}
-"""
+'''
 
 
 def generate_code_for_shape(shape_id: str, parts: list[list[float]]):
     def make_arguments(part: list[float]):
-        return ", ".join(map(lambda n: str(n).rstrip("0"), part))
-
-    code = ""
-    code += f"static SHAPE{shape_id}: LazyLock<VoxelShape> = LazyLock::new(|| {{"
+        return ', '.join(map(lambda n: str(n).rstrip('0'), part))
+    code = ''
+    code += f'static SHAPE{shape_id}: Lazy<VoxelShape> = Lazy::new(|| {{'
     steps = []
     if parts == ():
-        steps.append("collision::EMPTY_SHAPE.clone()")
+        steps.append('collision::empty_shape()')
     else:
-        steps.append(f"collision::box_shape({make_arguments(parts[0])})")
+        steps.append(f'collision::box_shape({make_arguments(parts[0])})')
         for part in parts[1:]:
-            steps.append(f"Shapes::or(s, collision::box_shape({make_arguments(part)}))")
+            steps.append(
+                f'Shapes::or(s, collision::box_shape({make_arguments(part)}))')
 
     if len(steps) == 1:
         code += steps[0]
     else:
-        code += "{\n"
+        code += '{\n'
         for step in steps[:-1]:
-            code += f"    let s = {step};\n"
-        code += f"    {steps[-1]}\n"
-        code += "}\n"
-    code += "});\n"
+            code += f'    let s = {step};\n'
+        code += f'    {steps[-1]}\n'
+        code += '}\n'
+    code += '});\n'
     return code
-
-
-def convert_ints_to_rust_ranges(block_state_ids: list[int]) -> str:
-    # convert them into ranges (so like 1|2|3 is 1..=3 instead)
-    block_state_ids_ranges = []
-    range_start_block_state_id = None
-    last_block_state_id = None
-    for block_state_id in sorted(block_state_ids):
-        if range_start_block_state_id is None:
-            range_start_block_state_id = block_state_id
-
-        if last_block_state_id is not None:
-            # check if the range is done
-            if block_state_id - 1 != last_block_state_id:
-                block_state_ids_ranges.append(
-                    f"{range_start_block_state_id}..={last_block_state_id}"
-                    if range_start_block_state_id != last_block_state_id
-                    else str(range_start_block_state_id)
-                )
-                range_start_block_state_id = block_state_id
-
-        last_block_state_id = block_state_id
-
-    block_state_ids_ranges.append(
-        f"{range_start_block_state_id}..={last_block_state_id}"
-        if range_start_block_state_id != last_block_state_id
-        else str(range_start_block_state_id)
-    )
-    return "|".join(block_state_ids_ranges)

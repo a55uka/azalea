@@ -7,21 +7,24 @@ import lib.download
 import lib.extract
 import lib.utils
 
-def generate(version_id):
-    pumpkin_block_datas = lib.extract.get_pumpkin_data(version_id, 'blocks')
-    burger_data = lib.extract.get_burger_data_for_version(version_id)
+version_id = lib.code.version.get_version_id()
 
-    block_states_report = lib.extract.get_block_states_report(version_id)
-    registries = lib.extract.get_registries_report(version_id)
-    ordered_blocks = lib.code.blocks.get_ordered_blocks(registries)
+shape_datas = lib.extract.get_pixlyzer_data(
+    version_id, 'shapes')
+pixlyzer_block_datas = lib.extract.get_pixlyzer_data(
+    version_id, 'blocks')
 
-    lib.code.blocks.generate_blocks(block_states_report, pumpkin_block_datas, ordered_blocks, burger_data)
-    lib.code.shapes.generate_block_shapes(pumpkin_block_datas, block_states_report)
+mappings = lib.download.get_mappings_for_version(version_id)
+block_states_burger = lib.extract.get_block_states_burger(version_id)
+ordered_blocks = lib.extract.get_ordered_blocks_burger(version_id)
+block_states_report = lib.extract.get_block_states_report(version_id)
 
-    lib.code.utils.fmt()
+lib.code.blocks.generate_blocks(
+    block_states_burger, block_states_report, pixlyzer_block_datas, ordered_blocks, mappings)
 
-    print('Done!')
+lib.code.shapes.generate_block_shapes(
+    pixlyzer_block_datas, shape_datas['shapes'], shape_datas['aabbs'], block_states_report, block_states_burger, mappings)
 
+lib.code.utils.fmt()
 
-if __name__ == '__main__':
-    generate(lib.code.version.get_version_id())
+print('Done!')

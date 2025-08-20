@@ -112,9 +112,6 @@ declare_menus! {
     Generic3x3 {
         contents: 9,
     },
-    Crafter3x3 {
-        contents: 9,
-    },
     Anvil {
         first: 1,
         second: 1,
